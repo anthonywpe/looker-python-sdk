@@ -53,7 +53,7 @@ class Query(object):
     ## private methods ##
 
     def __query_params(self):
-        fields_string = ",".join(sorted([field.lower() for field in self.fields]))
+        fields_string = ",".join([field.lower() for field in self.fields])
         filters_list = []
         for key, value in self.filters.iteritems():
             filters_list.append("filters[%s]=%s" % (str(key).lower(), urllib.quote_plus(str(value))))

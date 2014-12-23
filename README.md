@@ -3,7 +3,7 @@ Looker SDK for Python
 
 A Python library for Lookers's HTTP-based APIs.
 
-- https://github.com/sdhoover/Python_SDK
+- https://github.com/transverse/looker-python-sdk
 
 Setup
 -----

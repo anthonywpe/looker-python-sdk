@@ -9,8 +9,20 @@ import binascii
 import json
 import email
 
-class LookerClient(object):
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import ssl
 
+
+class TLSv1Adapter(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_TLSv1)
+
+
+class LookerClient(object):
     def __init__(self, token, secret, host, port=443):
         self.token = token
         self.secret = secret
@@ -22,7 +34,6 @@ class LookerClient(object):
 
 
 class Query(object):
-
     # only support for JSON and GET
     def __init__(self, credentials, query, dictionary, fields, filters=None, limit=1000, output='json', method='GET'):
         self.credentials = credentials
@@ -39,7 +50,12 @@ class Query(object):
         uri = "/api/dictionaries/%s/queries/%s.%s" % (
             self.dictionary, self.query, self.output)
         url = "%s%s?%s" % (self.credentials.host, uri, self.__query_params())
-        r = requests.get(url, headers=self.__headers(uri))
+
+        # as of Looker 3.6x, TLSv1 support is only option, but requests library needs explicit override to make
+        # ssl library use TLSv1
+        s = requests.Session()
+        s.mount('https://', TLSv1Adapter())
+        r = s.get(url, headers=self.__headers(uri))
         return json.loads(r.text)
 
     def set_output(self, output):
@@ -57,8 +73,8 @@ class Query(object):
         filters_list = []
         for key, value in self.filters.iteritems():
             filters_list.append("filters[%s]=%s" % (str(key).lower(), urllib.quote_plus(str(value))))
-	if not len(filters_list) == 0:
-	    return "fields=%s&%s&limit=%i" % (fields_string, "&".join(sorted(filters_list)), self.limit)
+        if not len(filters_list) == 0:
+            return "fields=%s&%s&limit=%i" % (fields_string, "&".join(sorted(filters_list)), self.limit)
         else:
             return "fields=%s&limit=%i" % (fields_string, self.limit)
 
